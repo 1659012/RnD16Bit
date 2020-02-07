@@ -1,4 +1,4 @@
-/////////////////VIDEO SUMMARY////////////////////////
+
 Installing dependencies and configuring our environment
 //////////////////////////////////////////////////////
 
@@ -11,10 +11,10 @@ Initial Dependencies:
 	sudo apt install python-pip
 		pip --version (make sure its working)
 		
-	sudo pip install --upgrade pip
+	pip install --upgrade pip
 		pip --version (make sure its working)
 	
-	sudo pip install MAVProxy==1.6.2
+	pip install MAVProxy==1.6.2
 		
 	sudo usermod -a -G dialout $USER
 	
