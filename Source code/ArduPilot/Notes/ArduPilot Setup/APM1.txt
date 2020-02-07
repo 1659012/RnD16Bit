@@ -1,0 +1,21 @@
+
+An introduction of the various flight modes that are available to us in 
+the ardupilot software
+///////////////////////////////////////////////////////////////////////////
+
+
+What is a flight mode?
+A flight mode is a particular way in which the rone can be controlled.
+For example:
+	Stabilize flight mode: Uses exclusively RC Input from the pilot
+	to control the drone
+
+	Loiter flihgt mode: Uses GPS/Barometer and a myriad of other sensor
+	inputs to automatically hold the drone at a desired place in 3D space
+	without requiring input from the pilot.
+
+Where can I learn more about flight modes in ardupilot?
+http://ardupilot.org/copter/docs/flight-modes.html
+
+Primary flight modes that will be used with a SITL droen, or a real drone
+that you want to script flights for: GUIDED,AUTO,RTL,LAND
