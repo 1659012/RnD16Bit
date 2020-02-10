@@ -1,5 +1,5 @@
 
-Launch our first simulated drone using sim_vehicle.py
+Launch first simulated drone using sim_vehicle.py
 //////////////////////////////////////////////////////////////////////////////////
 
 

@@ -19,3 +19,12 @@ http://ardupilot.org/copter/docs/flight-modes.html
 
 Primary flight modes that will be used with a SITL droen, or a real drone
 that you want to script flights for: GUIDED,AUTO,RTL,LAND
+
+GUIDED = No movement until receiving messages from MAVLink ground control
+
+AUTO = Pre-destined flight path. Mission fly  mode.
+
+RTL (Return to Lauch) = Fly back to home coordiante (saved inside the onboard controller) and land
+
+LAND = Land mode :v
+
