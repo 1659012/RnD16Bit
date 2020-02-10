@@ -1,0 +1,20 @@
+/////////////////////////////VIDEO OVERVIEW///////////////////////////////
+Install QGroundControl (QGC)
+//////////////////////////////////////////////////////////////////////////
+
+
+
+Where can I install QGC from?
+
+https://docs.qgroundcontrol.com/en/getting_started/download_and_install.html
+
+Then run this on the downloaded file:
+	chmod +x QGroundControl.AppImage 
+
+	This will make the program executable (runnable as a program)
+
+Then launch QGC by running:
+
+	./QGroundControl.AppImage
+
+
