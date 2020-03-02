@@ -2,6 +2,7 @@
 Launch first simulated drone using sim_vehicle.py
 //////////////////////////////////////////////////////////////////////////////////
 
+sim_vehicle.py --map --console
 
 What does sim_vehicle.py do?
 Launches our simulated drone with four main steps:
