@@ -55,11 +55,11 @@ print("RTL_SPEED param value is %s"%str(rtl_speed))
 
 
 fs_gcs_enable = vehicle.parameters['FS_GCS_ENABLE']
-vehicle.parameters['GPS_TYPE']=2 #### Enabled always RTL
-gps_type = vehicle.parameters['FS_GCS_ENABLE']
+vehicle.parameters['FS_GCS_ENABLE']=2 #### Enabled always RTL
+fs_gcs_enable = vehicle.parameters['FS_GCS_ENABLE']
 
 if vehicle.parameters['FS_GCS_ENABLE']==0: #### Disabled
 	vehicle.parameters['FS_GCS_ENABLE']=2
-	gps_type = vehicle.parameters['FS_GCS_ENABLE']
+	fs_gcs_enable = vehicle.parameters['FS_GCS_ENABLE']
 
 print("FS_GCS param value is %s"%str(fs_gcs_enable))
