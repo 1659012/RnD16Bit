@@ -43,15 +43,15 @@ if vehicle.parameters['GPS_TYPE']!=4:
 
 print("GPS_TYPE param value is %s"%str(gps_type))
 
-rtl_speed = vehicle.parameters['RTL_SPEED']
-vehicle.parameters['RTL_SPEED'] <= 100
-rtl_speed = vehicle.parameters['RTL_SPEED']
+# rtl_speed = vehicle.parameters['RTL_SPEED']
+# vehicle.parameters['RTL_SPEED'] <= 100
+# rtl_speed = vehicle.parameters['RTL_SPEED']
 
-if vehicle.parameters['RTL_SPEED'] > 100
-	vehicle.parameters['RTL_SPEED'] < 50
-	rtl_speed = vehicle.parameters['RTL_SPEED']
+# if vehicle.parameters['RTL_SPEED'] > 100
+# 	vehicle.parameters['RTL_SPEED'] < 50
+# 	rtl_speed = vehicle.parameters['RTL_SPEED']
 
-print("RTL_SPEED param value is %s"%str(rtl_speed))
+# print("RTL_SPEED param value is %s"%str(rtl_speed))
 
 
 fs_gcs_enable = vehicle.parameters['FS_GCS_ENABLE']
