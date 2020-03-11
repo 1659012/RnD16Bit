@@ -1,0 +1,15 @@
+Making a function to arm the drone and takeoff into
+the beautiful blue sky
+////////////////////////////////////////////////////////
+
+
+The function we will be making:
+	
+	arm_and_takeoff
+
+	It will take a target altitude height as input
+	that the drone will fly to. 
+
+	This in conjunction with the connectMyCopter function
+	will be used in almost every one of your dronekit	
+	python scripts!

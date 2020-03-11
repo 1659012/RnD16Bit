@@ -1,0 +1,29 @@
+Reading and Writing parameters with dronekit
+in python
+////////////////////////////////////////////////
+
+Key information
+
+	To access a parameter
+	
+		vehicle.parameters['PARAM_NAME']
+
+		Example
+		
+			gps_type = vehicle.parameters['GPS_TYPE']
+
+	To write a new parameter value
+
+		vehicle.parameters['PARAM_NAME']=VALUE
+
+		Example
+	
+			vehicle.parameters['GPS_TYPE']=3
+
+Full list of ardupilot parameters and descriptons
+httpardupilot.orgcopterdocsparameters.html
+
+NOTE This is the current list of parameters. The Software
+version you are using may be missing some parameters due
+to it being a different software type (APM3.3 will have
+different parameters than APM3.5.5)

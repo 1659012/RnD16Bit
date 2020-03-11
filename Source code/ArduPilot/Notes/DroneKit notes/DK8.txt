@@ -1,0 +1,7 @@
+Moving on from location based movement to velocity based movement
+////////////////////////////////////////////////////////////////
+
+
+Prerequisite Knowledge:
+
+	NED velocity in both the GLOBAL and LOCAL frames. 

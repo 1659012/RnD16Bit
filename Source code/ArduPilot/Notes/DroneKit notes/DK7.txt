@@ -1,0 +1,24 @@
+Use the AUTO flight mode to fly an autonomous
+mission around a football stadium
+//////////////////////////////////////////////
+
+
+
+
+New dronekit function: Command()
+
+Command(0,0,0,FrameOfReference,MAVLinkCommand,CurrentWP,AutoContinue,param1,param2,param3,param4,param5,param6,param7)
+
+Example:
+
+	cmd1=Command(0,0,0,mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,0,0,0,0,0,0,44.501416,-88.063205,15)
+
+
+
+Resources:
+
+	Where to find commands:
+		http://ardupilot.org/copter/docs/common-mavlink-mission-command-messages-mav_cmd.html
+
+	Where to find GPS coordinates:
+		https://www.gps-coordinates.net/

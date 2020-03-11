@@ -1,0 +1,11 @@
+Create a function to control/position the yaw
+of the drone.
+////////////////////////////////////////////////////
+
+
+Kep points: 
+
+	Similar to how we have 2 frames of reference
+	to use when controlling the drone with velocity
+	commands, we also have 2 ways to assign the
+	yaw of the vehicle (global and relative).

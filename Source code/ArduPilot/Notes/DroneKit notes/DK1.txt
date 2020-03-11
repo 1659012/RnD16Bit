@@ -1,0 +1,23 @@
+Access vehcile 'attributes' (State information about
+our drone, like: velocity, GPS location, flight mode)
+from the drone we are connected to
+//////////////////////////////////////////////////////
+
+
+Where to learn more about dronekit and attributes?
+	http://python.dronekit.io/guide/vehicle_state_and_parameters.html
+
+Key new subjects in this video:
+
+	vehicle.mode.name ##Can set our flight mode or request from the drone
+			  ##what flight mode we are in
+
+
+	vehcile.armed	  ##Is the drone armed (props spinning)
+
+
+
+*******CORE THING TO REMEMBER FROM THIS VIDEO***************
+If you set an attribute/parameter to some value in your
+dronekit script, YOU are responsible for stopping your
+code from progressing until the change has been mode.

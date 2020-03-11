@@ -1,0 +1,14 @@
+Controlling the drone with basic navigation functions
+////////////////////////////////////////////////////////////
+
+
+In this video we will:
+	
+	1. Make waypoint objects 
+	2. Create a function to measure the distance between
+	two waypoints
+	3. Create a function that will run until the drone
+	has reached a desired waypoint. 
+
+Website to find GPS locations if you want to use your own locations:
+https://www.gps-coordinates.net/
