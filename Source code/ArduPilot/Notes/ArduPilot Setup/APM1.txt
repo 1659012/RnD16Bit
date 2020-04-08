@@ -1,13 +1,10 @@
-
-An introduction of the various flight modes that are available to us in 
-the ardupilot software
 ///////////////////////////////////////////////////////////////////////////
 
 mkdir  apm
 
 cd apm
 
-git clone -b Copter-3.5.5 https://github.com/ardupilot/ardupilot
+git clone https://github.com/ardupilot/ardupilot
 
 git submodule update --init --recursive
 
