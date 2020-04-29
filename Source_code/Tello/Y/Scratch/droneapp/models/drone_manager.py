@@ -1,9 +1,15 @@
 import logging
 import contextlib
+import os
 import socket
+import subprocess
 import threading
 import time
 
+import cv2 as cv
+import numpy as np
+
+from droneapp.models.base import Singleton
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +17,19 @@ DEFAULT_DISTANCE = 0.30
 DEFAULT_SPEED = 10
 DEFAULT_DEGREE = 10
 
+FRAME_X = int(960/3)
+FRAME_Y = int(720/3)
+FRAME_AREA = FRAME_X * FRAME_Y
 
-class DroneManager(object):
+FRAME_SIZE = FRAME_AREA * 3
+FRAME_CENTER_X = FRAME_X / 2
+FRAME_CENTER_Y = FRAME_Y / 2
+
+CMD_FFMPEG = (f'ffmpeg -hwaccel auto -hwaccel_device opencl -i pipe:0 '
+              f'-pix_fmt bgr24 -s {FRAME_X}x{FRAME_Y} -f rawvideo pipe:1')
+
+
+class DroneManager(metaclass=Singleton):
     def __init__(self, host_ip='192.168.10.2', host_port=8889,
                  drone_ip='192.168.10.1', drone_port=8889,
                  is_imperial=False, speed=DEFAULT_SPEED):
@@ -36,6 +53,20 @@ class DroneManager(object):
         self.is_patrol = False
         self._patrol_semaphore = threading.Semaphore(1)
         self._thread_patrol = None
+
+        self.proc = subprocess.Popen(CMD_FFMPEG.split(' '),
+                                     stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE)
+        self.proc_stdin = self.proc.stdin
+        self.proc_stdout = self.proc.stdout
+
+        self.video_port = 11111
+
+        self._receive_video_thread = threading.Thread(
+            target=self.receive_video,
+            args=(self.stop_event, self.proc_stdin,
+                  self.host_ip, self.video_port,))
+        self._receive_video_thread.start()
 
         self.send_command('command')
         self.send_command('streamon')
@@ -64,6 +95,10 @@ class DroneManager(object):
                 break
             retry += 1
         self.socket.close()
+        os.kill(self.proc.pid, 9)
+        # Windows
+        # import signal
+        # os.kill(self.proc.pid, signal.CTRL_C_EVENT)
 
     def send_command(self, command):
         logger.info({'action': 'send_command', 'command': command})
@@ -176,3 +211,49 @@ class DroneManager(object):
                     time.sleep(5)
         else:
             logger.warning({'action': '_patrol', 'status': 'not_acquire'})
+
+    def receive_video(self, stop_event, pipe_in, host_ip, video_port):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock_video:
+            sock_video.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock_video.settimeout(.5)
+            sock_video.bind((host_ip, video_port))
+            data = bytearray(2048)
+            while not stop_event.is_set():
+                try:
+                    size, addr = sock_video.recvfrom_into(data)
+                    # logger.info({'action': 'receive_video', 'data': data})
+                except socket.timeout as ex:
+                    logger.warning({'action': 'receive_video', 'ex': ex })
+                    time.sleep(0.5)
+                    continue
+                except socket.error as ex:
+                    logger.error({'action': 'receive_video', 'ex': ex})
+                    break
+
+                try:
+                    pipe_in.write(data[:size])
+                    pipe_in.flush()
+                except Exception as ex:
+                    logger.error({'action': 'receive_video', 'ex': ex})
+                    break
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
