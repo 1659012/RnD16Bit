@@ -1,0 +1,20 @@
+///////////////////////VIDEO OVERVIEW/////////////////////////
+Learning more of the MAVProxy commands
+//////////////////////////////////////////////////////////////
+
+
+New MAVProxy commands in this video:
+
+	velocity X Y Z: Set the velocity in X Y and Z dimensions
+	
+	setyaw <angle> <angular_speed> <aboslute or relative>:Rotate the yaw/z axis of the drone
+
+	rc <channel> <value>: Set an RC Channel to 1,2,3 or 4 and to a value 1000 to 2000
+
+	long <command> <value>: Send a mavlink command in a CMD_LONG Mavlink message (Message ID 76)
+
+
+For a more detailed look at some of the commands (loaded as modules):
+
+https://ardupilot.github.io/MAVProxy/html/modules/index.html
+
