@@ -1,10 +1,13 @@
-from djitellopy import Tello
-import cv2
-import numpy as np
-import time
-import datetime
-import os
 import argparse
+import datetime
+
+import cv2 as cv2
+import numpy as np
+import os
+import time
+
+from djitellopy import Tello
+
 
 # standard argparse stuff
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, add_help=False)
