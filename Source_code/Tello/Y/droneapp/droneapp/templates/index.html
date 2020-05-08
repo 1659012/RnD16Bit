@@ -1,13 +1,20 @@
 {% extends "layout.html" %}
 
 {% block content %}
-            <div align="center">
-                <h1>Drone Controller Application</h1>
+    <div class="container"style="text-align: center">
+        <h2 >Functions</h2>
+        <div class="btn-group" role="group" >
+          <button type="button" class="btn btn-dark" style="text-align: center; width: 15em"><a href="/controller/">Controller App</a></button>
+          <button type="button" class="btn btn-warning" style="text-align: center; width: 15em"><a href="/games/shake/">Shaking Drone</a></button>
+        </div>
+        <div>
+            <img src="/video/streaming">
+        </div>
+    </div>
 
-            </div>
 
-           <ul data-role="listview">
-               <li><a href="/controller/">Controller</a></li>
-               <li><a href="/games/shake/">Shake Game</a></li>
-           </ul>
+<!--           <ul data-role="listview">-->
+<!--               <li><a href="/controller/">Controller</a></li>-->
+<!--               <li><a href="/games/shake/">Shake Game</a></li>-->
+<!--           </ul>-->
 {% endblock %}
