@@ -207,6 +207,81 @@ class DroneManager(metaclass=Singleton):
     def flip_right(self):
         return self.send_command('flip r')
 
+    def get_response(self):
+        """
+        Returns response of tello.
+        Returns:
+            int: response of tello.
+        """
+        response = self.response
+        return response
+
+    def get_height(self):
+        """Returns height(dm) of tello.
+        Returns:
+            int: Height(dm) of tello.
+        """
+        height = self.send_command('height?')
+        height = str(height)
+        height = filter(str.isdigit, height)
+        try:
+            height = int(height)
+            self.last_height = height
+        except:
+            height = self.last_height
+            pass
+        return height
+
+    def get_battery(self):
+        """Returns percent battery life remaining.
+        Returns:
+            int: Percent battery life remaining.
+        """
+
+        battery = self.send_command('battery?')
+
+        try:
+            battery = int(battery)
+        except:
+            pass
+
+        return battery
+
+    def get_flight_time(self):
+        """Returns the number of seconds elapsed during flight.
+        Returns:
+            int: Seconds elapsed during flight.
+        """
+
+        flight_time = self.send_command('time?')
+
+        try:
+            flight_time = int(flight_time)
+        except:
+            pass
+
+        return flight_time
+
+    def get_speed(self):
+        """Returns the current speed.
+        Returns:
+            int: Current speed in KPH or MPH.
+        """
+
+        speed = self.send_command('speed?')
+
+        try:
+            speed = float(speed)
+
+            if self.imperial is True:
+                speed = round((speed / 44.704), 1)
+            else:
+                speed = round((speed / 27.7778), 1)
+        except:
+            pass
+
+        return speed
+
     def patrol(self):
         if not self.is_patrol:
             self.patrol_event = threading.Event()
@@ -237,14 +312,18 @@ class DroneManager(metaclass=Singleton):
                 while not stop_event.is_set():
                     status += 1
                     if status == 1:
-                        self.up()
+                        self.up(5)
                     if status == 2:
-                        self.clockwise(90)
+                        self.forward(30)
                     if status == 3:
-                        self.down()
+                        self.clockwise(90)
                     if status == 4:
+                        self.forward(20)
+                    if status == 5:
+                        self.down(5)
+                    if status == 6:
                         status = 0
-                    time.sleep(5)
+                    time.sleep(2)
         else:
             logger.warning({'action': '_patrol', 'status': 'not_acquire'})
 
