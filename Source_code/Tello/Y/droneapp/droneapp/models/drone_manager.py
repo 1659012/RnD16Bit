@@ -312,17 +312,17 @@ class DroneManager(metaclass=Singleton):
                 while not stop_event.is_set():
                     status += 1
                     if status == 1:
-                        self.up(5)
-                    if status == 2:
                         self.forward(30)
-                    if status == 3:
+                    if status == 2:
                         self.clockwise(90)
-                    if status == 4:
+                    if status == 3:
                         self.forward(20)
-                    if status == 5:
+                    if status == 4:
                         self.down(5)
-                    if status == 6:
+                    if status == 5:
                         status = 0
+                        # break;
+                    #     test break if status == 0 and drone not completely land? 
                     time.sleep(2)
         else:
             logger.warning({'action': '_patrol', 'status': 'not_acquire'})
