@@ -317,7 +317,7 @@ class DroneManager(metaclass=Singleton):
                 while not stop_event.is_set():
                     status += 1
                     if status == 1:
-                        self.forward()
+                        self.forward(0.5)
                     if status == 2:
                         self.clockwise(90)
                     if status == 3:
@@ -461,7 +461,8 @@ class DroneManager(metaclass=Singleton):
                 stack.callback(semaphore.release)
                 status = 0
                 while not status == 8:
-                    status += 1
+                    if status == 0:
+                        self.takeoff()
                     if status == 1:
                         self.forward()
                     if status == 2:
@@ -478,9 +479,10 @@ class DroneManager(metaclass=Singleton):
                         self.counter_clockwise(90)
                     if status == 8:
                         self.land()
-                        self.is_routing = False
+                        self.stop_route()
                         # break;
                     #     test break if status == 0 and drone not completely land?
                     time.sleep(2)
+                    status += 1
         else:
             logger.warning({'action': '_route', 'status': 'not_acquire'})

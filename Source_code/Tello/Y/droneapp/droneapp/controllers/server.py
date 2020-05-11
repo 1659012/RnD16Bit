@@ -5,7 +5,6 @@ from flask import render_template
 from flask import request
 from flask import Response
 
-import droneapp.models.course
 from droneapp.models.drone_manager import DroneManager
 
 import config
@@ -101,41 +100,6 @@ def video_generator():
 @app.route('/video/streaming')
 def video_feed():
     return Response(video_generator(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
-def get_courses(course_id=None):
-    drone = get_drone()
-    courses = droneapp.models.course.get_courses(drone)
-    if course_id:
-        return courses.get(course_id)
-    return courses
-
-
-@app.route('/games/shake/')
-def game_shake():
-    courses = get_courses()
-    return render_template('games/shake.html', courses=courses)
-
-
-@app.route('/api/shake/start', methods=['GET', 'POST'])
-def shake_start():
-    # course_id = request.args.get('id')
-    course_id = request.form.get('id')
-    course = get_courses(int(course_id))
-    course.start()
-    return jsonify(result='started'), 200
-
-
-@app.route('/api/shake/run', methods=['GET', 'POST'])
-def shake_run():
-    # course_id = request.args.get('id')
-    course_id = request.form.get('id')
-    course = get_courses(int(course_id))
-    course.run()
-    return jsonify(
-        elapsed=course.elapsed,
-        status=course.status,
-        running=course.is_running), 200
 
 
 def run():
