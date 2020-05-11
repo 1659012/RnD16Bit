@@ -72,6 +72,10 @@ def command():
         drone.patrol()
     if cmd == 'stopPatrol':
         drone.stop_patrol()
+    if cmd == 'route':
+        drone.route()
+    if cmd == 'stopRoute':
+        drone.stop_route()
     if cmd == 'faceDetectAndTrack':
         drone.enable_face_detect()
     if cmd == 'stopFaceDetectAndTrack':

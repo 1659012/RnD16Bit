@@ -65,6 +65,11 @@ class DroneManager(metaclass=Singleton):
         self._patrol_semaphore = threading.Semaphore(1)
         self._thread_patrol = None
 
+        self.routing_event = None
+        self.is_routing = False
+        self._routing_semaphore = threading.Semaphore(1)
+        self._thread_routing = None
+
         self.proc = subprocess.Popen(CMD_FFMPEG.split(' '),
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE)
@@ -312,14 +317,10 @@ class DroneManager(metaclass=Singleton):
                 while not stop_event.is_set():
                     status += 1
                     if status == 1:
-                        self.forward(30)
+                        self.forward()
                     if status == 2:
                         self.clockwise(90)
                     if status == 3:
-                        self.forward(20)
-                    if status == 4:
-                        self.down(5)
-                    if status == 5:
                         status = 0
                         # break;
                     #     test break if status == 0 and drone not completely land? 
@@ -431,3 +432,55 @@ class DroneManager(metaclass=Singleton):
             time.sleep(0.1)
             retry += 1
         return False
+
+    def route(self):
+        if not self.is_routing:
+            self.routing_event = threading.Event()
+            self._thread_routing = threading.Thread(
+                target=self._route,
+                args=(self._routing_semaphore, self.routing_event,))
+            self._thread_routing.start()
+            self.is_routing = True
+
+    def stop_route(self):
+        if self.is_routing:
+            self.routing_event.set()
+            retry = 0
+            while self._thread_routing.isAlive():
+                time.sleep(0.3)
+                if retry > 300:
+                    break
+                retry += 1
+            self.is_routing = False
+
+    def _route(self, semaphore, stop_event):
+        is_acquire = semaphore.acquire(blocking=False)
+        if is_acquire:
+            logger.info({'action': '_route', 'status': 'acquire'})
+            with contextlib.ExitStack() as stack:
+                stack.callback(semaphore.release)
+                status = 0
+                while not status == 8:
+                    status += 1
+                    if status == 1:
+                        self.forward()
+                    if status == 2:
+                        self.clockwise(90)
+                    if status == 3:
+                        self.forward()
+                    if status == 4:
+                        self.up()
+                    if status == 5:
+                        self.down()
+                    if status == 6:
+                        self.back()
+                    if status == 7:
+                        self.counter_clockwise(90)
+                    if status == 8:
+                        self.land()
+                        self.is_routing = False
+                        # break;
+                    #     test break if status == 0 and drone not completely land?
+                    time.sleep(2)
+        else:
+            logger.warning({'action': '_route', 'status': 'not_acquire'})
