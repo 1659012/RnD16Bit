@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .controller-box{
+        text-align: center;
+    }
+    .solid{
+        border-style: dotted;
+    }
+    .leftJoy{
+        border-radius: 50%;
+        background-color: #00FFFF;
+    }
+    .rightJoy{
+        border-radius: 50%;
+        background-color: #FFFAF0;
+    }
+</style>
+
+<script>
+    function sendCommand(command, params={}) {
+        console.log({action: 'sendCommand', command: command, params: params});
+        params['command'] = command;
+        $.post("/api/command/", params).done(function (json) {
+            console.log({action: 'sendCommand', json: json});
+        }, 'json')
+    }
+
+    function snapShot(){
+        $.post("/api/command/", {'command': 'snapshot'}).done(function (json) {
+            $('#div-snapshot').show();
+            $('#snapshot').attr('src', $('#snapshot').attr('src') + '?' + Math.random());
+        }, 'json')
+
+    }
+
+    $(document).on('pageinit', function() {
+        $('#slider-speed').on("slidestop", function (event) {
+            let params = {
+                speed: $("#slider-speed").val(),
+            };
+            sendCommand('speed', params);
+        });
+    });
+
+</script>
+
+
+<div class="row">
+    <div class="col-lg-3 leftJoy">
+        <div class="ui-nodisc-icon ui-alt-icon">
+            <a id="up" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" href="#" onclick="sendCommand('up'); return false;">
+                <img src="/static/css/images/icons-png/carat-u-black.png" alt="">
+            </a>
+        </div>
+        <div class="ui-nodisc-icon ui-alt-icon">
+            <a id="clockwise" href="#" class="ui-btn ui-shadow ui-corner-all ui-btn-inline"onclick="sendCommand('clockwise'); return false;">
+                <img src="/static/css/images/icons-png/forward-black.png" alt="">
+            </a>
+            <a id="takeOff" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" href="#" style="background: #28a745;" data-role="button" onclick="sendCommand('takeOff'); return false;">
+                <img src="/static/css/images/icons-png/takeOff.png" alt="">            
+            </a>
+            <a id="counterClockwise" href="#" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" onclick="sendCommand('counterClockwise'); return false;">
+                <img src="/static/css/images/icons-png/back-black.png" alt="">
+            </a>
+        </div>
+        <div class="ui-nodisc-icon ui-alt-icon">
+            <a id="down" href="#" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" onclick="sendCommand('down'); return false;">
+               <img src="/static/css/images/icons-png/carat-d-black.png" alt="">
+            </a>
+        </div>
+    </div>
+
+    <div class="controller-box solid col-lg-6" style="display: flex; justify-content:">
+        <img src="/video/streaming">
+    </div>
+
+    <div class="col-lg-3 rightJoy">
+        <div class="ui-nodisc-icon ui-alt-icon">
+            <a id="forward" href="#"class="ui-btn ui-shadow ui-corner-all ui-btn-inline" onclick="sendCommand('forward'); return false;">
+                <img src="/static/css/images/icons-png/arrow-u-black.png" alt="">
+            </a>
+        </div>
+        <div class="ui-nodisc-icon ui-alt-icon">
+            <a id="left" href="#"class="ui-btn ui-shadow ui-corner-all ui-btn-inline"onclick="sendCommand('left'); return false;">
+                <img src="/static/css/images/icons-png/arrow-l-black.png" alt="">
+            </a>
+            <a id="land" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" href="#" style= "background: #ffc107;" data-role="button" onclick="sendCommand('land'); return false;">
+                <img src="/static/css/images/icons-png/land.png" alt="">
+            </a>
+            <a id="right" href="#" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" onclick="sendCommand('right'); return false;">
+                <img src="/static/css/images/icons-png/arrow-r-black.png" alt="">
+            </a>
+        </div>
+        <div class="ui-nodisc-icon ui-alt-icon">
+            <a id="back" href="#" class="ui-btn ui-shadow ui-corner-all ui-btn-inline" onclick="sendCommand('back'); return false;">
+                <img src="/static/css/images/icons-png/arrow-d-black.png" alt="">
+            </a>
+        </div>
+    </div>
+</div>
+<br>
+<div class="controller-box">
+    <h3>Speed</h3>
+    <input type="range" name="slider-2" id="slider-speed" data-highlight="true" min="0" max="100" value="10">
+</div>
+
+<div class="controller-box">
+    <h3>Flip</h3>
+    <div data-role="controlgroup" data-type="horizontal">
+        <a href="#" data-role="button" data-inline="true" onclick="sendCommand('flipFront'); return false;">Forward</a>
+        <a href="#" data-role="button" data-inline="true" onclick="sendCommand('flipLeft'); return false;">Left</a>
+        <a href="#" data-role="button" data-inline="true" onclick="sendCommand('flipRight'); return false;">Right</a>
+        <a href="#" data-role="button" data-inline="true" onclick="sendCommand('flipBack'); return false;">Back</a>
+    </div>
+</div>
+
+
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

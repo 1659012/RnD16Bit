@@ -28,6 +28,11 @@ def controller():
     return render_template('controller.html')
 
 
+@app.route('/controller2/')
+def controller2():
+    return render_template('controller2.html')
+
+
 @app.route('/api/command/', methods=['POST'])
 def command():
     cmd = request.form.get('command')
