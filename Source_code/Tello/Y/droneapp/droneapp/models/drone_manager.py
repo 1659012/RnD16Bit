@@ -10,6 +10,7 @@ import cv2 as cv
 import numpy as np
 
 from droneapp.models.base import Singleton
+from droneapp.djitellopy.tello import Tello
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,8 @@ DEFAULT_DISTANCE = 0.30
 DEFAULT_SPEED = 10
 DEFAULT_DEGREE = 10
 
-FRAME_X = int(960/3)
-FRAME_Y = int(720/3)
+FRAME_X = int(960 / 3)
+FRAME_Y = int(720 / 3)
 FRAME_AREA = FRAME_X * FRAME_Y
 
 FRAME_SIZE = FRAME_AREA * 3
@@ -29,8 +30,11 @@ CMD_FFMPEG = (f'ffmpeg -hwaccel auto -hwaccel_device opencl -i pipe:0 '
               f'-pix_fmt bgr24 -s {FRAME_X}x{FRAME_Y} -f rawvideo pipe:1')
 
 FACE_DETECT_XML_FILE = './droneapp/models/haarcascade_frontalface_default.xml'
+OBJECT_DETECT_FILE = './droneapp/models/object_default.png'
 
 SNAPSHOT_IMAGE_FOLDER = './droneapp/static/img/snapshots/'
+client_socket = 0
+drones = None
 
 
 class ErrorNoFaceDetectXMLFile(Exception):
@@ -57,7 +61,7 @@ class DroneManager(metaclass=Singleton):
 
         self.response = None
         self.stop_event = threading.Event()
-        self._response_thread = threading.Thread(target=self.receive_response, args=(self.stop_event, ))
+        self._response_thread = threading.Thread(target=self.receive_response, args=(self.stop_event,))
         self._response_thread.start()
 
         self.patrol_event = None
@@ -108,7 +112,7 @@ class DroneManager(metaclass=Singleton):
                              'response': self.response})
             except socket.error as ex:
                 logger.error({'action': 'receive_response',
-                             'ex': ex})
+                              'ex': ex})
                 break
 
     def __dell__(self):
@@ -212,81 +216,6 @@ class DroneManager(metaclass=Singleton):
     def flip_right(self):
         return self.send_command('flip r')
 
-    def get_response(self):
-        """
-        Returns response of tello.
-        Returns:
-            int: response of tello.
-        """
-        response = self.response
-        return response
-
-    def get_height(self):
-        """Returns height(dm) of tello.
-        Returns:
-            int: Height(dm) of tello.
-        """
-        height = self.send_command('height?')
-        height = str(height)
-        height = filter(str.isdigit, height)
-        try:
-            height = int(height)
-            self.last_height = height
-        except:
-            height = self.last_height
-            pass
-        return height
-
-    def get_battery(self):
-        """Returns percent battery life remaining.
-        Returns:
-            int: Percent battery life remaining.
-        """
-
-        battery = self.send_command('battery?')
-
-        try:
-            battery = int(battery)
-        except:
-            pass
-
-        return battery
-
-    def get_flight_time(self):
-        """Returns the number of seconds elapsed during flight.
-        Returns:
-            int: Seconds elapsed during flight.
-        """
-
-        flight_time = self.send_command('time?')
-
-        try:
-            flight_time = int(flight_time)
-        except:
-            pass
-
-        return flight_time
-
-    def get_speed(self):
-        """Returns the current speed.
-        Returns:
-            int: Current speed in KPH or MPH.
-        """
-
-        speed = self.send_command('speed?')
-
-        try:
-            speed = float(speed)
-
-            if self.imperial is True:
-                speed = round((speed / 44.704), 1)
-            else:
-                speed = round((speed / 27.7778), 1)
-        except:
-            pass
-
-        return speed
-
     def patrol(self):
         if not self.is_patrol:
             self.patrol_event = threading.Event()
@@ -328,7 +257,8 @@ class DroneManager(metaclass=Singleton):
         else:
             logger.warning({'action': '_patrol', 'status': 'not_acquire'})
 
-    def receive_video(self, stop_event, pipe_in, host_ip, video_port):
+    @staticmethod
+    def receive_video(stop_event, pipe_in, host_ip, video_port):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock_video:
             sock_video.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock_video.settimeout(.5)
@@ -382,10 +312,10 @@ class DroneManager(metaclass=Singleton):
                 gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
                 faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
                 for (x, y, w, h) in faces:
-                    cv.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                    cv.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-                    face_center_x = x + (w/2)
-                    face_center_y = y + (h/2)
+                    face_center_x = x + (w / 2)
+                    face_center_y = y + (h / 2)
                     diff_x = FRAME_CENTER_X - face_center_x
                     diff_y = FRAME_CENTER_Y - face_center_y
                     face_area = w * h
@@ -433,6 +363,32 @@ class DroneManager(metaclass=Singleton):
             retry += 1
         return False
 
+    def send_command_without_return(self, command: str):
+        """Send command to Tello without expecting a response. Use this method when you want to send a command
+        continuously
+            - go x y z speed: Tello fly to x y z in speed (cm/s)
+                x: 20-500
+                y: 20-500
+                z: 20-500
+                speed: 10-100
+            - curve x1 y1 z1 x2 y2 z2 speed: Tello fly a curve defined by the current and two given coordinates with
+                speed (cm/s). If the arc radius is not within the range of 0.5-10 meters, it responses false.
+                x/y/z can’t be between -20 – 20 at the same time .
+                x1, x2: 20-500
+                y1, y2: 20-500
+                z1, z2: 20-500
+                speed: 10-60
+            - rc a b c d: Send RC control via four channels.
+                a: left/right (-100~100)
+                b: forward/backward (-100~100)
+                c: up/down (-100~100)
+                d: yaw (-100~100)
+        """
+        # Commands very consecutive makes the drone not respond to them. So wait at least self.TIME_BTW_COMMANDS seconds
+
+        logger.info('Send command (no expect response): ' + command)
+        self.socket.sendto(command.encode('utf-8'), self.drone_address)
+
     def route(self):
         if not self.is_routing:
             self.routing_event = threading.Event()
@@ -455,34 +411,27 @@ class DroneManager(metaclass=Singleton):
 
     def _route(self, semaphore, stop_event):
         is_acquire = semaphore.acquire(blocking=False)
+        drone_x = 0
+        drone_y = 0
+        drone_z = 0
+        speed = 0
         if is_acquire:
             logger.info({'action': '_route', 'status': 'acquire'})
             with contextlib.ExitStack() as stack:
                 stack.callback(semaphore.release)
-                status = 0
-                while not status == 8:
-                    if status == 0:
-                        self.takeoff()
-                    if status == 1:
-                        self.forward()
-                    if status == 2:
-                        self.clockwise(90)
-                    if status == 3:
-                        self.forward()
-                    if status == 4:
-                        self.up()
-                    if status == 5:
-                        self.down()
-                    if status == 6:
-                        self.back()
-                    if status == 7:
-                        self.counter_clockwise(90)
-                    if status == 8:
-                        self.land()
-                        self.stop_route()
-                        # break;
-                    #     test break if status == 0 and drone not completely land?
-                    time.sleep(2)
-                    status += 1
+                self.takeoff()
+                time.sleep(2)
+                self.send_command_without_return(f'rc {10} {10} {10} {0}')
+                time.sleep(2)
+                self.send_command_without_return(f'rc {0} {10} {10} {0}')
+                time.sleep(2)
+                self.send_command_without_return(f'rc {0} {-10} {10} {0}')
+                time.sleep(2)
+                self.send_command_without_return(f'rc {-10} {-10} {-10} {0}')
+                time.sleep(2)
+                self.send_command_without_return(f'rc {-10} {-10} {-10} {0}')
+                time.sleep(2)
+                self.land()
+
         else:
             logger.warning({'action': '_route', 'status': 'not_acquire'})
