@@ -1,0 +1,5 @@
+Flask
+av
+opencv-python
+image
+pygame
