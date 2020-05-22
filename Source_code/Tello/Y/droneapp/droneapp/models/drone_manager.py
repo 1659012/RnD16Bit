@@ -61,20 +61,6 @@ class DroneManager(metaclass=Singleton):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind((self.host_ip, self.host_port))
 
-        self.date_fmt = '%Y-%m-%d_%H%M%S'
-        self.drone = tellopy.Tello()
-        self.init_drone()
-        self.tello = Tello()
-        self.tracking = False
-
-        # container for processing the packets into frames
-        self.container = av.open(self.drone.get_video_stream())
-        self.vid_stream = self.container.streams.video[0]
-        self.out_file = None
-        self.out_stream = None
-        self.out_name = None
-        self.start_time = time.time()
-
         # tracking a color
         green_lower = (30, 50, 50)
         green_upper = (80, 255, 255)
@@ -82,12 +68,11 @@ class DroneManager(metaclass=Singleton):
         # red_upper = (20, 255, 255)
         # blue_lower = (110, 50, 50)
         # upper_blue = (130, 255, 255)
+
         self.xoff = 0
         self.yoff = 0
-        self.track_cmd = ""
-        self.tracker = Tracker(self.vid_stream.height,
-                               self.vid_stream.width,
-                               green_lower, green_upper)
+        self.tracker = Tracker(FRAME_X, FRAME_Y, green_lower, green_upper)
+
         self.response = None
         self.stop_event = threading.Event()
         self._response_thread = threading.Thread(target=self.receive_response, args=(self.stop_event,))
@@ -133,16 +118,6 @@ class DroneManager(metaclass=Singleton):
         self.send_command('command')
         self.send_command('streamon')
         self.set_speed(self.speed)
-
-    def init_drone(self):
-        """Connect, unable streaming and subscribe to events"""
-        # self.drone.log.set_level(2)
-        self.drone.connect()
-        self.drone.start_video()
-        self.drone.subscribe(self.drone.EVENT_FLIGHT_DATA,
-                             self.flight_data_handler)
-        self.drone.subscribe(self.drone.EVENT_FILE_RECEIVED,
-                             self.handle_flight_received)
 
     def receive_response(self, stop_event):
         while not stop_event.is_set():
@@ -307,7 +282,7 @@ class DroneManager(metaclass=Singleton):
             while not stop_event.is_set():
                 try:
                     size, addr = sock_video.recvfrom_into(data)
-                    # logger.info({'action': 'receive_video', 'data': data})
+                    logger.info({'action': 'receive_video', 'data': data})
                 except socket.timeout as ex:
                     logger.warning({'action': 'receive_video', 'ex': ex})
                     time.sleep(0.5)
@@ -405,6 +380,32 @@ class DroneManager(metaclass=Singleton):
             retry += 1
         return False
 
+    def send_command_without_return(self, command: str):
+        """Send command to Tello without expecting a response. Use this method when you want to send a command
+        continuously
+            - go x y z speed: Tello fly to x y z in speed (cm/s)
+                x: 20-500
+                y: 20-500
+                z: 20-500
+                speed: 10-100
+            - curve x1 y1 z1 x2 y2 z2 speed: Tello fly a curve defined by the current and two given coordinates with
+                speed (cm/s). If the arc radius is not within the range of 0.5-10 meters, it responses false.
+                x/y/z can’t be between -20 – 20 at the same time .
+                x1, x2: 20-500
+                y1, y2: 20-500
+                z1, z2: 20-500
+                speed: 10-60
+            - rc a b c d: Send RC control via four channels.
+                a: left/right (-100~100)
+                b: forward/backward (-100~100)
+                c: up/down (-100~100)
+                d: yaw (-100~100)
+        """
+        # Commands very consecutive makes the drone not respond to them. So wait at least self.TIME_BTW_COMMANDS seconds
+
+        logger.info('Send command (no expect response): ' + command)
+        self.socket.sendto(command.encode('utf-8'), self.drone_address)
+
     def route(self, stop_event):
         drone_x = 0
         drone_y = 0
@@ -413,16 +414,16 @@ class DroneManager(metaclass=Singleton):
         self.takeoff()
         drone_y = 0.3
         time.sleep(2)
-        self.tello.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
+        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
         drone_y = -0.3
         time.sleep(2)
-        self.tello.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
+        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
         drone_z = 0.3
         time.sleep(2)
-        self.tello.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
+        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
         drone_z = -0.3
         time.sleep(2)
-        self.tello.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
+        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
         time.sleep(2)
         self.land()
 
@@ -433,98 +434,37 @@ class DroneManager(metaclass=Singleton):
         self._is_enable_object_detect = False
 
     def object_detection(self):
-        for packet in self.container.demux((self.vid_stream,)):
-            for frame in packet.decode():
+        for frame in self.video_binary_generator():
+            if self._is_enable_face_detect:
+                if self.is_patrol:
+                    self.stop_patrol()
                 if self._is_enable_face_detect:
-                    if self.is_patrol:
-                        self.stop_patrol()
-                    if self._is_enable_face_detect:
-                        self.disable_face_detect()
-                    """convert frame to cv2 image and show"""
-                    image = cv.cvtColor(np.array(
-                        frame.to_image()), cv.COLOR_RGB2BGR)
-                    image = self.write_hud(image)
+                    self.disable_face_detect()
+                """convert frame to cv2 image and show"""
+                image = cv.cvtColor(np.array(
+                    frame.to_image()), cv.COLOR_RGB2BGR)
 
-                    xoff, yoff, object_area = self.tracker.track(image)
-                    object_percentage = object_area / FRAME_AREA
+                xoff, yoff, object_area = self.tracker.track(image)
+                object_percentage = object_area / FRAME_AREA
 
-                    drone_x, drone_y, drone_z, speed = 0, 0, 0, self.speed
-                    distance = 40
-                    if xoff < -distance:
-                        drone_y = -distance
-                    if xoff > distance:
-                        drone_y = distance
-                    if yoff < -distance / 2:
-                        drone_z = -distance
-                    if yoff > distance / 2:
-                        drone_z = distance
-                    if object_percentage > 0.40:
-                        drone_x = -distance
-                    if object_percentage < 0.10:
-                        drone_x = distance
-                    self.send_command(f'go {drone_x} {drone_y} {drone_z} {speed}',
-                                      blocking=False)
-                    break
+                drone_x, drone_y, drone_z, speed = 0, 0, 0, self.speed
+                distance = 40
+                if xoff < -distance:
+                    drone_y = -distance
+                if xoff > distance:
+                    drone_y = distance
+                if yoff < -distance / 2:
+                    drone_z = -distance
+                if yoff > distance / 2:
+                    drone_z = distance
+                if object_percentage > 0.40:
+                    drone_x = -distance
+                if object_percentage < 0.10:
+                    drone_x = distance
+                self.send_command(f'go {drone_x} {drone_y} {drone_z} {speed}',
+                                    blocking=False)
+                break
+        _, image = cv.imencode('.jpg', frame)
+        image_binary = image.tobytes()
 
-            _, image = cv.imencode('.jpg', frame)
-            image_binary = image.tobytes()
-
-            yield image_binary
-
-    def write_hud(self, frame):
-        """Draw drone info, tracking and record on frame"""
-        stats = self.prev_flight_data.split('|')
-        stats.append("Tracking:" + str(self.tracking))
-        if self.drone.zoom:
-            stats.append("VID")
-        else:
-            stats.append("PIC")
-
-        for idx, stat in enumerate(stats):
-            text = stat.lstrip()
-            cv.putText(frame, text, (0, 30 + (idx * 30)),
-                        cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), lineType=30)
-        return frame
-
-    def palm_land(self, speed):
-        """Tell drone to land"""
-        if speed == 0:
-            return
-        self.drone.palm_land()
-
-    def toggle_tracking(self, speed):
-        """ Handle tracking keypress"""
-        if speed == 0:  # handle key up event
-            return
-        self.tracking = not self.tracking
-        print("tracking:", self.tracking)
-        return
-
-    def toggle_zoom(self, speed):
-        """
-        In "video" mode the self.drone sends 1280x720 frames.
-        In "photo" mode it sends 2592x1936 (952x720) frames.
-        The video will always be centered in the window.
-        In photo mode, if we keep the window at 1280x720 that gives us ~160px on
-        each side for status information, which is ample.
-        Video mode is harder because then we need to abandon the 16:9 display size
-        if we want to put the HUD next to the video.
-        """
-        if speed == 0:
-            return
-        self.drone.set_video_mode(not self.drone.zoom)
-
-    def flight_data_handler(self, event, sender, data):
-        """Listener to flight data from the drone."""
-        text = str(data)
-        if self.prev_flight_data != text:
-            self.prev_flight_data = text
-
-    def handle_flight_received(self, event, sender, data):
-        """Create a file in ~/Pictures/ to receive image from the drone"""
-        path = '%s/Pictures/tello-%s.jpeg' % (
-            os.getenv('HOME'),
-            datetime.datetime.now().strftime(self.date_fmt))
-        with open(path, 'wb') as out_file:
-            out_file.write(data)
-        print('Saved photo to %s' % path)
+        yield image_binary
