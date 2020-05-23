@@ -1,0 +1,5 @@
+# Quality and completeness of all 
+
+a) development activities and outputs; 
+
+b) quality assurance
