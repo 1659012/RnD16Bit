@@ -5,15 +5,11 @@ import socket
 import subprocess
 import threading
 import time
-import datetime
 
 import cv2 as cv
 import numpy as np
-import tellopy
-import av
 
 from droneapp.models.base import Singleton
-from droneapp.djitellopy.tello import Tello
 from droneapp.controllers.tracker import Tracker
 
 logger = logging.getLogger(__name__)
@@ -34,7 +30,6 @@ CMD_FFMPEG = (f'ffmpeg -hwaccel auto -hwaccel_device opencl -i pipe:0 '
               f'-pix_fmt bgr24 -s {FRAME_X}x{FRAME_Y} -f rawvideo pipe:1')
 
 FACE_DETECT_XML_FILE = './droneapp/models/haarcascade_frontalface_default.xml'
-OBJECT_DETECT_FILE = './droneapp/models/object_default.png'
 
 SNAPSHOT_IMAGE_FOLDER = './droneapp/static/img/snapshots/'
 
@@ -61,32 +56,16 @@ class DroneManager(metaclass=Singleton):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind((self.host_ip, self.host_port))
 
-        # tracking a color
-        green_lower = (30, 50, 50)
-        green_upper = (80, 255, 255)
-        # red_lower = (0, 50, 50)
-        # red_upper = (20, 255, 255)
-        # blue_lower = (110, 50, 50)
-        # upper_blue = (130, 255, 255)
-
-        self.xoff = 0
-        self.yoff = 0
-        self.tracker = Tracker(FRAME_X, FRAME_Y, green_lower, green_upper)
-
         self.response = None
         self.stop_event = threading.Event()
-        self._response_thread = threading.Thread(target=self.receive_response, args=(self.stop_event,))
+        self._response_thread = threading.Thread(target=self.receive_response,
+                                                 args=(self.stop_event,))
         self._response_thread.start()
 
         self.patrol_event = None
         self.is_patrol = False
         self._patrol_semaphore = threading.Semaphore(1)
         self._thread_patrol = None
-
-        self.routing_event = None
-        self.is_routing = False
-        self._routing_semaphore = threading.Semaphore(1)
-        self._thread_routing = None
 
         self.proc = subprocess.Popen(CMD_FFMPEG.split(' '),
                                      stdin=subprocess.PIPE,
@@ -106,7 +85,6 @@ class DroneManager(metaclass=Singleton):
             raise ErrorNoFaceDetectXMLFile(f'No {FACE_DETECT_XML_FILE}')
         self.face_cascade = cv.CascadeClassifier(FACE_DETECT_XML_FILE)
         self._is_enable_face_detect = False
-        self._is_enable_object_detect = False
 
         if not os.path.exists(SNAPSHOT_IMAGE_FOLDER):
             raise ErrorNoImageDir(f'{SNAPSHOT_IMAGE_FOLDER} does not exists')
@@ -118,6 +96,19 @@ class DroneManager(metaclass=Singleton):
         self.send_command('command')
         self.send_command('streamon')
         self.set_speed(self.speed)
+
+        # tracking a color
+        green_lower = (30, 50, 50)
+        green_upper = (80, 255, 255)
+        # red_lower = (0, 50, 50)
+        # red_upper = (20, 255, 255)
+        # blue_lower = (110, 50, 50)
+        # upper_blue = (130, 255, 255)
+
+        self.xoff = 0
+        self.yoff = 0
+        self.tracker = Tracker(FRAME_X, FRAME_Y, green_lower, green_upper)
+        self._is_enable_object_detect = False
 
     def receive_response(self, stop_event):
         while not stop_event.is_set():
@@ -261,19 +252,18 @@ class DroneManager(metaclass=Singleton):
                 while not stop_event.is_set():
                     status += 1
                     if status == 1:
-                        self.forward(0.5)
+                        self.up()
                     if status == 2:
                         self.clockwise(90)
                     if status == 3:
+                        self.down()
+                    if status == 4:
                         status = 0
-                        # break;
-                    #     test break if status == 0 and drone not completely land? 
-                    time.sleep(2)
+                    time.sleep(5)
         else:
             logger.warning({'action': '_patrol', 'status': 'not_acquire'})
 
-    @staticmethod
-    def receive_video(stop_event, pipe_in, host_ip, video_port):
+    def receive_video(self, stop_event, pipe_in, host_ip, video_port):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock_video:
             sock_video.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock_video.settimeout(.5)
@@ -282,7 +272,7 @@ class DroneManager(metaclass=Singleton):
             while not stop_event.is_set():
                 try:
                     size, addr = sock_video.recvfrom_into(data)
-                    logger.info({'action': 'receive_video', 'data': data})
+                    # logger.info({'action': 'receive_video', 'data': data})
                 except socket.timeout as ex:
                     logger.warning({'action': 'receive_video', 'ex': ex})
                     time.sleep(0.5)
@@ -323,8 +313,6 @@ class DroneManager(metaclass=Singleton):
             if self._is_enable_face_detect:
                 if self.is_patrol:
                     self.stop_patrol()
-                if self._is_enable_object_detect:
-                    self.disable_object_detect()
 
                 gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
                 faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
@@ -347,9 +335,9 @@ class DroneManager(metaclass=Singleton):
                         drone_z = -30
                     if diff_y > 15:
                         drone_z = 30
-                    if percent_face > 0.40:
+                    if percent_face > 0.30:
                         drone_x = -30
-                    if percent_face < 0.1:
+                    if percent_face < 0.02:
                         drone_x = 30
                     self.send_command(f'go {drone_x} {drone_y} {drone_z} {speed}',
                                       blocking=False)
@@ -406,26 +394,36 @@ class DroneManager(metaclass=Singleton):
         logger.info('Send command (no expect response): ' + command)
         self.socket.sendto(command.encode('utf-8'), self.drone_address)
 
-    def route(self, stop_event):
-        drone_x = 0
-        drone_y = 0
-        drone_z = 0
-        speed = self.speed
+    def route(self):
+        status = 0
         self.takeoff()
-        drone_y = 0.3
-        time.sleep(2)
-        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
-        drone_y = -0.3
-        time.sleep(2)
-        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
-        drone_z = 0.3
-        time.sleep(2)
-        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
-        drone_z = -0.3
-        time.sleep(2)
-        self.send_command_without_return(f'go {drone_x} {drone_y} {drone_z} {speed}')
-        time.sleep(2)
-        self.land()
+        while not status == 10:
+            status += 1
+            drone_a = 0  # Left - right attributes -100 ~ 100
+            drone_b = 0  # Backward - forward attributes -100 ~ 100
+            drone_c = 0  # Down - up attributes attributes -100 ~ 100
+            drone_d = 0  # Yaw attributes -100 ~ 100
+            if status == 1:
+                drone_b = 60
+            if status == 2:
+                drone_b = -20
+            if status == 3:
+                drone_d = 50
+            if status == 4:
+                drone_b = 20
+            if status == 5:
+                drone_b = -20
+            if status == 6:
+                drone_c = 40
+            if status == 7:
+                drone_c = -40
+            if status == 8:
+                drone_d = -50
+            if status == 9:
+                self.land()
+                status = 10
+            time.sleep(2)
+            self.send_command(f'rc {drone_a} {drone_b} {drone_c} {drone_d}', blocking=False)
 
     def enable_object_detect(self):
         self._is_enable_object_detect = True
@@ -435,7 +433,7 @@ class DroneManager(metaclass=Singleton):
 
     def object_detection(self):
         for frame in self.video_binary_generator():
-            if self._is_enable_face_detect:
+            if self._is_enable_object_detect:
                 if self.is_patrol:
                     self.stop_patrol()
                 if self._is_enable_face_detect:

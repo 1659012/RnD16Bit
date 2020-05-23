@@ -13,11 +13,7 @@ https://www.pyimagesearch.com/2015/09/14/ball-tracking-with-opencv/
 @copyright 2018 see license file for details
 """
 
-import argparse
-import time
 import cv2
-import imutils
-from imutils.video import VideoStream
 
 
 class Tracker:

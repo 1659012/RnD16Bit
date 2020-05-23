@@ -1,7 +1,0 @@
-Flask
-av
-opencv-python
-image
-pygame
-tellopy
-imutils
