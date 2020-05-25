@@ -24,3 +24,4 @@ $ sudo vim ~/.bashrc
 $ export PATH="<your path here>":$PATH
 $ source ~/.bashrc
 ```
+```
