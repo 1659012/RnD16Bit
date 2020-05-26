@@ -1,0 +1,12 @@
+Make the functions to move the drone with velocity commands,
+with two different functions: One for local and the other for
+global NED velocity
+////////////////////////////////////////////////////////
+
+
+
+Key thing to note:
+	
+	Velocity commands must be resent every 1 second to keep 
+	the drone in constant motion. Sending 1 velocity
+	message will only move the drone for 1 second. 

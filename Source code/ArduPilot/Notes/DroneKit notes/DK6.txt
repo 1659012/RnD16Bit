@@ -1,0 +1,35 @@
+Using AUTO mode to fly our drone.
+/////////////////////////////////////////////////////
+
+
+Remember the MAVLink commands we looked at earlier?
+(-->> If you dont) http://ardupilot.org/copter/docs/common-mavlink-mission-command-messages-mav_cmd.html
+
+Most of these commands will work in BOTH the GUIDED and AUTO flight modes. 
+
+The difference here can be boiled down to this:
+
+	AUTO flight mode triggers pre-destined flights. The drone
+	will perform all the commands in its mission list. You
+	don't have to continuously monitor the drones progress
+	(Like measuring when the drone has gotten close enough to
+	a desired altitude. In AUTO mode, the ardupilot software
+	determines this for you).
+
+	GUIDED mode gives you more control of the drone, but places
+	more monitoring responsibility on the dronekit-scripter
+
+	AUTO mode takes away a lot of control from the dronekit script
+	and performs entirely autonomous missions (The missions you
+	uploaded)
+
+GUIDED mode great for:
+	Flights that will require some special functionality/circumstances that
+	aren't achievable in pure ArduPilot. 
+	EXAMPLE: Using OpenCV object detection in a separate python script 
+	to trigger movement commands in dronekit that then get sent to ardupilot
+
+AUTO mode great for:
+	Missions that will not require dynamic/reactive attention. 
+	EXAMPLE: Surveying a field and flying in predetermined flight
+	path, taking pictures every X meters of movement. 

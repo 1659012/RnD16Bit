@@ -1,0 +1,12 @@
+Make a bash script to make our lives easier for
+launching the our SITL scripts
+////////////////////////////////////////
+
+
+What is the bash script going to do?
+	4 things:
+		1. Start our dronekit-sitl instance
+		2. Launch QGC
+		3. Start MAVProxy and create additional
+		ports that can connect to the sitl drone
+		4. Launch our python/dronekit script

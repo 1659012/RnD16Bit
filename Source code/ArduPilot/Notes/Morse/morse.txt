@@ -1,0 +1,6 @@
+BOTH IN ../../ardupilot Directories
+
+
+morse run libraries/SITL/examples/Morse/quadcopter.py
+
+Tools/autotest/sim_vehicle.py -v ArduCopter --model morse-quad --add-param-file=libraries/SITL/examples/Morse/quadcopter.parm --console --map
